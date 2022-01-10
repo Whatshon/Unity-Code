@@ -4,69 +4,40 @@ using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
-    [SerializeField] private float speed;
-    [SerializeField]private LayerMask platformlayerMask;
+    [SerializeField] private CharacterController controller;
+    private float speed = 12f;
 
-    private Rigidbody2D body;
-    private Animator anim;
-    private bool grounded;
-    private BoxCollider2D boxCollider2d;
-    private int horizontalInput;
-    private int rotatiion;
-    [SerializeField]private float attackcd;
-    private float cdtimer = Mathf.Infinity;
-    private Transform aimTransform;
-    
+    private float gravity = -25f;
+    [SerializeField] private Transform grounded;
+    private float groundedDistance = 0.4f;
+    [SerializeField]private LayerMask groundedMask;
+    private float jumpHeight = 3f;
 
-    private void Awake()
-    {
-        //rigigbody
-        body = GetComponent<Rigidbody2D>();
-        //animation
-        anim = GetComponent<Animator>();
-        boxCollider2d = GetComponent<BoxCollider2D>();
-        aimTransform = transform.Find("Staff");
-    }
-    
+    private Vector3 velocity;
+    bool isGrounded;
 
     private void Update()
     {
-        
-        //movement
-        float horizontalInput = Input.GetAxis("Horizontal");
-        body.velocity = new Vector2(horizontalInput * speed, body.velocity.y);
-        //keybind. you know what i mean
-        //left right
-        if (horizontalInput > 0.01f)
-            transform.localScale = new Vector3(0.5f, 0.5f, 1);
-        else if (Input.GetKey(KeyCode.A))
-            transform.localScale = new Vector3(-0.5f, 0.5f, 1);
-        //jump
-        if (isGrounded() && Input.GetKey(KeyCode.W) )
-            body.velocity = new Vector2(body.velocity.x, speed);
-        if (isGrounded() && Input.GetKey(KeyCode.Space))
-            body.velocity = new Vector2(body.velocity.x, speed);
+        isGrounded = Physics.CheckSphere(grounded.position, groundedDistance, groundedMask);
+        if(isGrounded && velocity.y < 0)
+        {
+            velocity.y = -2f;
+        }
 
+        float x = Input.GetAxis("Horizontal");
+        float y = Input.GetAxis("Vertical");
 
-            //animation update
+        Vector3 move = transform.right * x + transform.forward * y;
 
-         anim.SetBool("Run", horizontalInput != 0);
-    }
-    private void jump()
-    {
-        body.velocity = new Vector2(body.velocity.x, speed);
-        anim.SetTrigger("Jump");
-    }
+        controller.Move(move * speed *Time.deltaTime);
 
-    private bool isGrounded()
-    {
-        RaycastHit2D raycastHit = Physics2D.BoxCast(boxCollider2d.bounds.center, boxCollider2d.bounds.size, 0, Vector2.down, 0.1f, platformlayerMask);
-        Debug.Log(raycastHit.collider);
-        return raycastHit.collider != null;
-    }
-    public bool canAttack()
-    {
-        return horizontalInput == 0 && isGrounded();
+        if(Input.GetButtonDown("Jump")&& isGrounded)
+        {
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+
+        velocity.y += gravity * Time.deltaTime;
+
+        controller.Move(velocity * Time.deltaTime);
     }
 }
-
